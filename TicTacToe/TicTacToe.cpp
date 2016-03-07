@@ -169,6 +169,32 @@ int GetCellNumberFromPoint(HWND hWnd, int xPos, int yPos)
 	return -1; //outside gameboard or failure
 }
 
+BOOL GetCellRect(HWND hWnd, int index, RECT *pRect)
+{
+	RECT rcBoard;
+	SetRectEmpty(pRect);
+	
+	if (index < 0 || index > 8)
+	{
+		return FALSE;
+	}
+
+	if (GetGameBoardRect(hWnd, &rcBoard))
+	{
+		int column = index % 3;
+		int row = index / 3;
+
+		pRect->left = rcBoard.left + column * CELL_SIZE + 1;
+		pRect->top = rcBoard.top + row * CELL_SIZE + 1;
+		pRect->right = pRect->left + CELL_SIZE - 1;
+		pRect->bottom = pRect->top + CELL_SIZE - 1;
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -217,6 +243,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				WCHAR temp[100];
 				wsprintf(temp, L"index = %d", index);
 				TextOut(hdc, xPos, yPos, temp, lstrlen(temp));
+
+				if (index != -1)
+				{
+					RECT rc;
+					if (GetCellRect(hWnd, index, &rc))
+					{
+						FillRect(hdc, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
+					}
+				}
 				ReleaseDC(hWnd, hdc);
 			}
 		}
