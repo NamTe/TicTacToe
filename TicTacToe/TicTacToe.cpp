@@ -12,6 +12,9 @@ HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 const int CELL_SIZE = 100;						// default size of board
+int intPlayerTurn = 1;
+int arrayGameBoard[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+HBRUSH hbPlayerOne, hbPlayerTwo;
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -173,7 +176,7 @@ BOOL GetCellRect(HWND hWnd, int index, RECT *pRect)
 {
 	RECT rcBoard;
 	SetRectEmpty(pRect);
-	
+
 	if (index < 0 || index > 8)
 	{
 		return FALSE;
@@ -213,6 +216,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
+	case WM_CREATE:
+	{
+		hbPlayerOne = CreateSolidBrush(RGB(255, 0, 0));
+		hbPlayerTwo = CreateSolidBrush(RGB(0, 0, 255));
+	}
+		break;
 	case WM_COMMAND:
 		wmId = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
@@ -231,37 +240,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_LBUTTONDOWN:
+	{
+		int xPos = GET_X_LPARAM(lParam);
+		int yPos = GET_Y_LPARAM(lParam);
+
+		int index = GetCellNumberFromPoint(hWnd, xPos, yPos);
+
+		HDC hdc = GetDC(hWnd);
+		if (NULL != hdc)
 		{
-			int xPos = GET_X_LPARAM(lParam);
-			int yPos = GET_Y_LPARAM(lParam);
+			WCHAR temp[100];
 
-			int index = GetCellNumberFromPoint(hWnd, xPos, yPos);
-
-			HDC hdc = GetDC(hWnd);
-			if (NULL != hdc) 
+			if (index != -1)
 			{
-				WCHAR temp[100];
-				wsprintf(temp, L"index = %d", index);
-				TextOut(hdc, xPos, yPos, temp, lstrlen(temp));
-
-				if (index != -1)
+				RECT rc;
+				if ((arrayGameBoard[index] == 0) && GetCellRect(hWnd, index, &rc))
 				{
-					RECT rc;
-					if (GetCellRect(hWnd, index, &rc))
-					{
-						FillRect(hdc, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
-					}
+ 					FillRect(hdc, &rc, (intPlayerTurn == 1) ? hbPlayerOne : hbPlayerTwo);
+					arrayGameBoard[index] = intPlayerTurn;
+					intPlayerTurn = (intPlayerTurn == 1) ? 2 : 1;
 				}
-				ReleaseDC(hWnd, hdc);
 			}
+			ReleaseDC(hWnd, hdc);
 		}
+	}
 		break;
 	case WM_GETMINMAXINFO:
-		{
-			MINMAXINFO* pMin = (MINMAXINFO*)lParam;
-			pMin->ptMinTrackSize.x = CELL_SIZE * 5;
-			pMin->ptMinTrackSize.y = CELL_SIZE * 5;
-		}
+	{
+		MINMAXINFO* pMin = (MINMAXINFO*)lParam;
+		pMin->ptMinTrackSize.x = CELL_SIZE * 5;
+		pMin->ptMinTrackSize.y = CELL_SIZE * 5;
+	}
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
@@ -279,12 +288,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			DrawLine(hdc, rc.left, rc.top + CELL_SIZE * i, rc.right, rc.top + CELL_SIZE * i);
 		}
-		
 
+		RECT rcCell;
+		for (int i = 0; i < ARRAYSIZE(arrayGameBoard); i++)
+		{
+			if ((arrayGameBoard[i] != 0) && GetCellRect(hWnd, i, &rcCell))
+			{
+				FillRect(hdc, &rcCell, (arrayGameBoard[i] == 1) ? hbPlayerOne : hbPlayerTwo);
+			}
+		}
 
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
+		DeleteObject(hbPlayerOne);
+		DeleteObject(hbPlayerTwo);
 		PostQuitMessage(0);
 		break;
 	default:
