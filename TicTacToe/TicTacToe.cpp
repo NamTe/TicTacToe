@@ -15,6 +15,8 @@ const int CELL_SIZE = 100;						// default size of board
 int intPlayerTurn = 1;
 int arrayGameBoard[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 HBRUSH hbPlayerOne, hbPlayerTwo;
+int winner = 0;
+int wins[3];
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -198,6 +200,35 @@ BOOL GetCellRect(HWND hWnd, int index, RECT *pRect)
 	return FALSE;
 }
 
+
+int GetWinner(int wins[3])
+{
+	int cells[] = {0,1,2,  3,4,5,  6,7,8,  0,3,6,  1,4,7,  2,5,8,  0,4,8,  2,4,6};
+
+	for (int i = 0; i < ARRAYSIZE(cells); i+=3)
+	{
+		//winner
+		if ((arrayGameBoard[cells[i]] != 0) && arrayGameBoard[cells[i]] == arrayGameBoard[cells[i + 1]] && arrayGameBoard[cells[i + 1]] == arrayGameBoard[cells[i + 2]]) {
+			wins[0] = cells[i];
+			wins[1] = cells[i + 1];
+			wins[2] = cells[i + 2];
+			
+			return arrayGameBoard[cells[i]];
+		}
+	}
+
+	for (int i = 0; i < ARRAYSIZE(arrayGameBoard); i++)
+	{
+		//continue
+		if (0 == arrayGameBoard[i])
+			return 0;
+	}
+
+	//draw
+	return 3;
+}
+
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -241,6 +272,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONDOWN:
 	{
+		if (intPlayerTurn == 0)
+			break;
 		int xPos = GET_X_LPARAM(lParam);
 		int yPos = GET_Y_LPARAM(lParam);
 
@@ -258,7 +291,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				{
  					FillRect(hdc, &rc, (intPlayerTurn == 1) ? hbPlayerOne : hbPlayerTwo);
 					arrayGameBoard[index] = intPlayerTurn;
-					intPlayerTurn = (intPlayerTurn == 1) ? 2 : 1;
+					winner = GetWinner(wins);
+					if (winner == 1 || winner == 2)
+					{
+						MessageBox(hWnd, (winner == 1) ? L"Player 1 is the winner" : L"Player 2 is the winner",
+							L"You Win", MB_OK | MB_ICONINFORMATION);
+						intPlayerTurn = 0;
+					}
+					else if (winner == 3) 
+					{
+						MessageBox(hWnd, L"it's a draw",
+							L"Draw", MB_OK | MB_ICONINFORMATION);
+						intPlayerTurn = 0;
+					}
+					else {
+						intPlayerTurn = (intPlayerTurn == 1) ? 2 : 1;
+					}
 				}
 			}
 			ReleaseDC(hWnd, hdc);
