@@ -95,7 +95,8 @@
     <ResourceCompile Include="TicTacToe.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico" />
+    <Image Include="..\..\..\..\..\Downloads\o_lowercase_128px_1168318_easyicon.net.ico" />
+    <Image Include="..\..\..\..\..\Downloads\x_lowercase_128px_1168339_easyicon.net.ico" />
     <Image Include="TicTacToe.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

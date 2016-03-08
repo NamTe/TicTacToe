@@ -5,6 +5,7 @@
 #include "TicTacToe.h"
 #include<windowsx.h>
 
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -14,7 +15,7 @@ TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 const int CELL_SIZE = 100;						// default size of board
 int intPlayerTurn = 1;
 int arrayGameBoard[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-HBRUSH hbPlayerOne, hbPlayerTwo;
+HICON hiPlayerOne, hiPlayerTwo;
 int winner = 0;
 int wins[3];
 
@@ -86,7 +87,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hbrBackground = (HBRUSH)GetStockObject(GRAY_BRUSH);
 	wcex.lpszMenuName = MAKEINTRESOURCE(IDC_TICTACTOE);
 	wcex.lpszClassName = szWindowClass;
-	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_TICTACTOE));
 
 	return RegisterClassEx(&wcex);
 }
@@ -203,16 +204,16 @@ BOOL GetCellRect(HWND hWnd, int index, RECT *pRect)
 
 int GetWinner(int wins[3])
 {
-	int cells[] = {0,1,2,  3,4,5,  6,7,8,  0,3,6,  1,4,7,  2,5,8,  0,4,8,  2,4,6};
+	int cells[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 3, 6, 1, 4, 7, 2, 5, 8, 0, 4, 8, 2, 4, 6 };
 
-	for (int i = 0; i < ARRAYSIZE(cells); i+=3)
+	for (int i = 0; i < ARRAYSIZE(cells); i += 3)
 	{
 		//winner
 		if ((arrayGameBoard[cells[i]] != 0) && arrayGameBoard[cells[i]] == arrayGameBoard[cells[i + 1]] && arrayGameBoard[cells[i + 1]] == arrayGameBoard[cells[i + 2]]) {
 			wins[0] = cells[i];
 			wins[1] = cells[i + 1];
 			wins[2] = cells[i + 2];
-			
+
 			return arrayGameBoard[cells[i]];
 		}
 	}
@@ -228,6 +229,67 @@ int GetWinner(int wins[3])
 	return 3;
 }
 
+
+void ShowTurn(HWND hWnd, HDC hdc)
+{
+	static const LPWSTR szPlayerOneTurn = L"Turn: Player 1";
+	static const LPWSTR szPlayerTwoTurn = L"Turn: Player 2";
+	LPWSTR Turn = intPlayerTurn == 1 ? szPlayerOneTurn : szPlayerTwoTurn;
+	switch (winner)
+	{
+
+	case 0:
+		Turn = intPlayerTurn == 1 ? szPlayerOneTurn : szPlayerTwoTurn;
+		break;
+	case 1 :
+		Turn = L"Player 1 is the winner";
+		break;
+	case 2 : 
+		Turn = L"Player 2 is the winner";
+		break;
+	default:
+		Turn = L"it's a draw";
+		break;
+	}
+	RECT rcClient;
+	if (GetClientRect(hWnd, &rcClient))
+	{
+		rcClient.top = rcClient.bottom - 48;
+		FillRect(hdc, &rcClient, (HBRUSH)GetStockObject(GRAY_BRUSH));
+		SetBkMode(hdc, TRANSPARENT);
+		SetTextColor(hdc, RGB(0, 0, 0));
+		DrawText(hdc, Turn, lstrlen(Turn), &rcClient, DT_CENTER);
+	}
+}
+
+BOOL StartNewGame(HWND hWnd)
+{
+	int id = MessageBox(hWnd, L"Are you sure to start new game?", L"New Game?", MB_YESNO);
+	if (id == IDYES)
+	{
+		intPlayerTurn = winner == 3 ? 1 : winner;
+		ZeroMemory(arrayGameBoard, sizeof(arrayGameBoard));
+		ZeroMemory(wins, sizeof(wins));
+		winner = 0;
+		ShowTurn(hWnd, GetDC(hWnd));
+		InvalidateRect(hWnd, NULL, TRUE);
+		UpdateWindow(hWnd);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+void DrawIconCentered(HDC hdc, RECT *pRect, HICON hIcon)
+{
+	const int ICON_SIZE = 32;
+
+	if (NULL != pRect)
+	{
+		int left = pRect->left + ((pRect->right - pRect->left) - ICON_SIZE) / 2;
+		int top = pRect->top + ((pRect->bottom - pRect->top) - ICON_SIZE) / 2;
+		DrawIcon(hdc, left, top, hIcon);
+	}
+}
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -249,8 +311,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 	{
-		hbPlayerOne = CreateSolidBrush(RGB(255, 0, 0));
-		hbPlayerTwo = CreateSolidBrush(RGB(0, 0, 255));
+
+		hiPlayerOne = LoadIcon(hInst, MAKEINTRESOURCE(IDI_X));
+		hiPlayerTwo = LoadIcon(hInst, MAKEINTRESOURCE(IDI_O));
 	}
 		break;
 	case WM_COMMAND:
@@ -259,6 +322,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// Parse the menu selections:
 		switch (wmId)
 		{
+		case ID_FILE_NEWGAME:
+		{
+			StartNewGame(hWnd);
+		}
+			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -273,7 +341,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	{
 		if (intPlayerTurn == 0)
-			break;
+		{
+			if (!StartNewGame(hWnd))
+			{
+				break;
+			}
+		}
+
 		int xPos = GET_X_LPARAM(lParam);
 		int yPos = GET_Y_LPARAM(lParam);
 
@@ -289,7 +363,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				RECT rc;
 				if ((arrayGameBoard[index] == 0) && GetCellRect(hWnd, index, &rc))
 				{
- 					FillRect(hdc, &rc, (intPlayerTurn == 1) ? hbPlayerOne : hbPlayerTwo);
+					//FillRect(hdc, &rc, (intPlayerTurn == 1) ? hbPlayerOne : hbPlayerTwo);
+					DrawIconCentered(hdc, &rc, (intPlayerTurn == 1) ? hiPlayerOne : hiPlayerTwo);
 					arrayGameBoard[index] = intPlayerTurn;
 					winner = GetWinner(wins);
 					if (winner == 1 || winner == 2)
@@ -298,7 +373,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							L"You Win", MB_OK | MB_ICONINFORMATION);
 						intPlayerTurn = 0;
 					}
-					else if (winner == 3) 
+					else if (winner == 3)
 					{
 						MessageBox(hWnd, L"it's a draw",
 							L"Draw", MB_OK | MB_ICONINFORMATION);
@@ -306,7 +381,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else {
 						intPlayerTurn = (intPlayerTurn == 1) ? 2 : 1;
+						
 					}
+					ShowTurn(hWnd, hdc);
 				}
 			}
 			ReleaseDC(hWnd, hdc);
@@ -326,6 +403,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		RECT rc;
 		if (GetGameBoardRect(hWnd, &rc))
 		{
+			RECT rcClient;
+			if (GetClientRect(hWnd, &rcClient))
+			{
+				LPWSTR szPlayerOne = L"Player 1";
+				LPWSTR szPlayerTwo = L"Player 2";
+				SetBkMode(hdc, TRANSPARENT);
+				SetTextColor(hdc, RGB(0, 0, 0));
+				TextOut(hdc, 10, 10, szPlayerOne, lstrlen(szPlayerOne));
+				SetTextColor(hdc, RGB(255, 255, 255));
+				TextOut(hdc, rcClient.right - 65, 10, szPlayerTwo, lstrlen(szPlayerTwo));
+			}
 			FillRect(hdc, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
 			//Rectangle(hdc, rc.left, rc.top, rc.right, rc.bottom);
 		}
@@ -342,15 +430,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			if ((arrayGameBoard[i] != 0) && GetCellRect(hWnd, i, &rcCell))
 			{
-				FillRect(hdc, &rcCell, (arrayGameBoard[i] == 1) ? hbPlayerOne : hbPlayerTwo);
+				DrawIconCentered(hdc, &rcCell, (arrayGameBoard[i] == 1) ? hiPlayerOne : hiPlayerTwo);
 			}
 		}
-
+		ShowTurn(hWnd, hdc);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
-		DeleteObject(hbPlayerOne);
-		DeleteObject(hbPlayerTwo);
+
+		DestroyIcon(hiPlayerOne);
+		DestroyIcon(hiPlayerTwo);
 		PostQuitMessage(0);
 		break;
 	default:
