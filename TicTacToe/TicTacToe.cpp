@@ -209,7 +209,8 @@ int GetWinner(int wins[3])
 	for (int i = 0; i < ARRAYSIZE(cells); i += 3)
 	{
 		//winner
-		if ((arrayGameBoard[cells[i]] != 0) && arrayGameBoard[cells[i]] == arrayGameBoard[cells[i + 1]] && arrayGameBoard[cells[i + 1]] == arrayGameBoard[cells[i + 2]]) {
+		if ((arrayGameBoard[cells[i]] != 0) && arrayGameBoard[cells[i]] == arrayGameBoard[cells[i + 1]] &&
+			arrayGameBoard[cells[i + 1]] == arrayGameBoard[cells[i + 2]]) {
 			wins[0] = cells[i];
 			wins[1] = cells[i + 1];
 			wins[2] = cells[i + 2];
@@ -241,10 +242,10 @@ void ShowTurn(HWND hWnd, HDC hdc)
 	case 0:
 		Turn = intPlayerTurn == 1 ? szPlayerOneTurn : szPlayerTwoTurn;
 		break;
-	case 1 :
+	case 1:
 		Turn = L"Player 1 is the winner";
 		break;
-	case 2 : 
+	case 2:
 		Turn = L"Player 2 is the winner";
 		break;
 	default:
@@ -291,6 +292,19 @@ void DrawIconCentered(HDC hdc, RECT *pRect, HICON hIcon)
 	}
 }
 
+void ShowWinner(HWND hWnd, HDC hdc)
+{
+	RECT rcClient;
+	for (int i = 0; i < ARRAYSIZE(wins); i++)
+	{
+		if (GetCellRect(hWnd, wins[i], &rcClient)) {
+			FillRect(hdc, &rcClient, CreateSolidBrush(RGB(255, 0, 0)));
+			DrawIconCentered(hdc, &rcClient, (winner == 1) ? hiPlayerOne : hiPlayerTwo);
+		}
+	}
+
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -311,7 +325,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 	{
-
 		hiPlayerOne = LoadIcon(hInst, MAKEINTRESOURCE(IDI_X));
 		hiPlayerTwo = LoadIcon(hInst, MAKEINTRESOURCE(IDI_O));
 	}
@@ -369,8 +382,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					winner = GetWinner(wins);
 					if (winner == 1 || winner == 2)
 					{
+						ShowWinner(hWnd, hdc);
 						MessageBox(hWnd, (winner == 1) ? L"Player 1 is the winner" : L"Player 2 is the winner",
 							L"You Win", MB_OK | MB_ICONINFORMATION);
+						
 						intPlayerTurn = 0;
 					}
 					else if (winner == 3)
@@ -381,7 +396,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					else {
 						intPlayerTurn = (intPlayerTurn == 1) ? 2 : 1;
-						
+
 					}
 					ShowTurn(hWnd, hdc);
 				}
@@ -433,11 +448,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				DrawIconCentered(hdc, &rcCell, (arrayGameBoard[i] == 1) ? hiPlayerOne : hiPlayerTwo);
 			}
 		}
+		if (winner != 0 && winner != 3)
+		{
+			ShowWinner(hWnd, hdc);
+		}
 		ShowTurn(hWnd, hdc);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_DESTROY:
-
 		DestroyIcon(hiPlayerOne);
 		DestroyIcon(hiPlayerTwo);
 		PostQuitMessage(0);
